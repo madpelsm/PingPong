@@ -1,0 +1,419 @@
+<html>
+    <head>
+        <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro" rel="stylesheet">  
+        <script src='jquery.js'></script>
+    <style>
+        body{
+            font-family: 'Source Sans Pro', sans-serif;
+            text-align: center;
+            margin:0;
+        }
+        #wrapper{
+            vertical-align: middle;
+            width:95%;
+            margin-left:2.5%;
+            margin-right:2.5%;
+            margin-bottom: 1em;
+        }
+        .cont{
+            display:inline-block;
+        }
+        textarea{
+            text-align: center;
+            font-family: 'Source Sans Pro', sans-serif;
+            resize:none;
+            overflow: hidden;
+            font-size:120%;
+            padding-top: 0.2em;
+            height: 2em;
+        }
+        button{
+            display: inline-block;
+        }
+        canvas{
+            background-color:'white';
+            cursor:default;   
+        }
+        
+        
+        
+    
+    </style>
+    </head>
+    
+    
+<body>
+    <div id='wrapper'>
+        <div class='cont'>
+            <h2>Width</h2>
+            <textarea id='width'>720</textarea>
+        </div>
+        <div class='cont'>
+            <h2>Height</h2>
+            <textarea id='height'>600</textarea>
+            </div>
+        <div class='cont'>
+            <h2>Ballspeed</h2>
+            <textarea id='ballSpeed'>15</textarea>
+            </div>
+        <div class='cont'>
+            <h2>Player Width</h2>
+            <textarea id='playerWidth'>200</textarea>
+            </div>
+        <div class='cont'>
+            <h2>Ball Radius</h2>
+            <textarea id='ballRadius'>10</textarea>
+            </div>
+        <div class='cont'>
+            <h2>Difficulty</h2>
+            <textarea id='difficulty'>20</textarea>
+            </div>
+    <button onclick='game()'>Go</button>
+    </div>
+    
+    </body>
+<script>
+    $(function(){});
+    function game(){
+        if($('#canvas')!=null){
+            $('#canvas').remove();
+        }
+        var WIDTH=checkInput($('#width').val()),HEIGHT=checkInput($('#height').val()),fps=60,ballSpeed=checkInput($('#ballSpeed').val()),balLRad=checkInput($('#ballRadius').val()),playerWidth = checkInput($('#playerWidth').val());
+        var canvas = document.createElement("canvas");
+        canvas.id="canvas";
+        canvas.width=WIDTH;
+        canvas.height=HEIGHT;
+        document.body.appendChild(canvas);
+        var ctx = canvas.getContext('2d');
+        var P1 = new Player('AI',canvas.width/2,0,4,playerWidth,20);
+        var P2 = new Player('Player',canvas.width/2,canvas.height,4,playerWidth,20);
+        var ball = new Ball('ball',-1,-1,0,ballSpeed);
+        var rectangle = new Rectangle(400,100,WIDTH/2,HEIGHT/2);
+        var startBox = new TextBox('click to start',WIDTH/2,HEIGHT/2,'white');
+        var AISpeedThreshold = checkInput($('#difficulty').val());
+        $("#canvas").css("border","1px solid black");
+        var updateInterval;
+        function checkInput(input){
+            if((0<input) && (input<9000)){
+                return parseInt(input);
+            }
+            else{
+                alert('you entered a faulty input value');
+            }
+        }
+        if(AISpeedThreshold>WIDTH/2){
+            alert('you\'ll never win');
+        }
+        function Player(name,xPos,yPos,xSpd,pWidth,pHeight){
+            this.name=name;
+            this.xPos=xPos;
+            this.yPos=yPos;
+            this.xSpd=xSpd;
+            this.pWidth=pWidth;
+            this.pHeight=pHeight;
+
+        }
+        function Ball(name,xPos,yPos,xSpd,ySpd){
+            this.name=name;
+            this.xPos=xPos;
+            this.yPos=yPos;
+            this.xSpd=xSpd;
+            this.ySpd=0;
+            this.initionalSpeed = ySpd;
+            this.color='#616161';
+        }
+        Ball.prototype.getInitionalSpeed = function(){
+            return this.initionalSpeed;
+        }
+        Ball.prototype.isWithinBounds = function(){
+            var ballX = this.getXPos();
+            var ballY = this.getYPos();
+            var boxborderX = Math.abs(this.getXSpd());
+            var boxborderY = Math.abs(this.getYSpd());
+            var hor = (0<=(ballX+boxborderX)) && ((ballX-boxborderX)<=WIDTH);
+            var vert = (0<(ballY+boxborderY)) && ((ballY-boxborderY)< HEIGHT);
+            return (hor && vert);
+        }
+        function Rectangle(rectWidth,rectHeight,x,y){
+            this.rectWidth = rectWidth;
+            this.rectHeight = rectHeight;
+            this.x=x;
+            this.y=y;
+        }
+        Rectangle.prototype.draw = function(){
+
+            ctx.rect(this.x-this.rectWidth/2,this.y-this.rectHeight/2,this.rectWidth,this.rectHeight);
+            ctx.fillStyle='grey';
+            ctx.closePath();
+            ctx.fill();
+
+        }
+        function TextBox(contents, posX,posY,color){
+            this.contents=contents;
+            this.posX=posX;
+            this.posY=posY;
+            this.color=color;
+
+        }
+        TextBox.prototype.draw = function(){
+            ctx.font='50px arial';
+            var length = this.contents.length;
+            ctx.fillStyle = this.color;
+            var contents = this.contents;
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText(contents,this.posX,this.posY);
+            ctx.closePath();
+        }
+        main();
+        function main(){
+            rectangle.draw();
+            startBox.draw();
+            //draw();
+        }
+        window.addEventListener('click',startGame);        
+        function startGame(e){
+            var pos = getMousPos(canvas,e);
+            var mouseX = pos.x;
+            var mouseY = pos.y;
+            var xWithinBox = ((rectangle.x-rectangle.rectWidth/2)<mouseX) && (mouseX<(rectangle.x+rectangle.rectWidth/2));
+            var yWithinBox = ((rectangle.y-rectangle.rectHeight/2)<mouseY) && (mouseY<(rectangle.y+rectangle.rectHeight/2));
+            if( xWithinBox && yWithinBox && !ball.isWithinBounds()){
+                $('canvas').css('cursor','none');
+                ctx.clearRect(0,0,WIDTH,HEIGHT);
+                ball.setXPos(WIDTH/2);
+                ball.setYPos(WIDTH/2);
+                updateInterval = setInterval(update,1000/fps);
+
+            }
+
+        }
+        Ball.prototype.advanceYSpd = function(){
+            if(Math.abs(this.getYSpd())<Math.abs(this.getInitionalSpeed())){
+                var newSpeed = (this.getYSpd()!=0)?(Math.abs(this.getYSpd())/this.getYSpd())*(Math.abs(this.getYSpd())+0.5):this.getYSpd()+1;
+                this.setYSpd(newSpeed);
+            }
+        }
+        function update(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.beginPath();
+            ball.setYPos(ball.newYPos());
+            ball.setXPos(ball.newXPos());
+            P1.AIXPos();
+            if(ball.isWithinBounds()){
+                ball.advanceYSpd();
+                P1.draw();
+                P2.draw();
+                ball.draw();
+            }
+            else{
+                gameOver();
+            }
+
+        }
+        function gameOver(){
+            var winner = getWinner();
+            clearInterval(updateInterval);
+            ctx.clearRect(0,0,WIDTH,HEIGHT);
+            var text = new TextBox(winner+' wins',WIDTH/2,HEIGHT/2,'white');
+            $('canvas').css('cursor','hand');
+            rectangle.draw();
+            text.draw();
+            ball.setXSpd(0);
+            ball.setXPos(-1);
+            ball.setYPos(-1);
+            ball.setYSpd(0);
+        }
+        function getWinner(){
+            if(ball.getYPos()>(HEIGHT/2)){
+                return P1.name;
+            }
+            else{
+                return P2.name;
+            }
+        }
+
+        Player.prototype.AIXPos=function(){
+            var ballX = ball.getXPos();
+            var ballY = ball.getYPos();
+            var scaledY = ballY*2*Math.PI/HEIGHT;
+            var newXpos= (ballX-this.pWidth/2)+Math.exp(-scaledY*0.3)*Math.sin(scaledY)*200;
+            var previousAIpos = P1.getXPos();
+            var currentAIpos = newXpos;
+            var AiSpeed = currentAIpos-previousAIpos;
+            if( Math.abs(AiSpeed)>Math.abs(AISpeedThreshold)){
+                this.setXPos(previousAIpos+((Math.abs(AiSpeed)/AiSpeed)*AISpeedThreshold));
+                AiSpeed=AISpeedThreshold;
+            }
+            else{
+                this.setXPos(newXpos);
+            }
+            previousAIpos = currentAIpos;
+            if(ball.collides()){
+                if(ball.hits(this.getXPos(),this.getYPos(),this.getWidth(),this.getHeigth())){
+                var ballXpsd = ball.getXSpd();
+                var weightFAI = 0.5;
+                ball.setXSpd(ballXpsd+AiSpeed*weightFAI);
+                }
+            }
+        }
+        function draw(){
+            ctx.fill();
+
+        }
+        var mousePre =0;
+        window.addEventListener('mousemove',PlayerXPos);
+        function PlayerXPos(e){
+            var pos = getMousPos(canvas,e);
+            var posX = pos.x;
+            var xP2 = P2.getXPos();
+            var previousPos = mousePre;
+            var currentPos = posX;
+            var mouseSpeed = previousPos-currentPos;
+            var weightF = 0.5;
+            mousePre=posX;
+            P2.setXPos(posX);
+            if(ball.hits(P2.getXPos(),P2.getYPos(),P2.getWidth(),P2.getHeigth())){
+                ball.setXSpd(-mouseSpeed*weightF+ball.getXSpd());
+            }
+            //P2.setXPos(P1.getXPos());
+        }
+        function getMousPos(canvas,e){
+
+            var rect = canvas.getBoundingClientRect();
+            return{x: e.clientX-rect.left, y: e.clientY-rect.top};
+        }
+
+
+        Ball.prototype.newXPos = function(){
+            var ballX = this.getXPos();
+            if((0>ballX)||(ballX>=canvas.width)){
+                var spd = this.getXSpd();
+                this.setXSpd(spd*(-1));
+                return this.getXPos()+this.getXSpd();
+            }
+            else{
+                return this.getXPos()+this.getXSpd();
+            }
+        }
+        Ball.prototype.newYPos = function(){
+
+            var collides = this.collides();
+            if(this.collides()){
+                var yP = this.getYPos();
+                var ySpd = this.getYSpd();
+                this.setYSpd((-1)*ySpd);
+                return yP+this.getYSpd();
+            }
+            else{
+                return this.getYPos()+this.getYSpd();
+            }
+        }
+        Ball.prototype.collides = function(){
+            var xP1=P1.getXPos(),xP2=P2.getXPos(),yP1=P1.getYPos(),yP2=P2.getYPos(), widthP1 = P1.getWidth(), widthP2 = P2.getWidth(),heightP1= P1.getHeigth(),heightP2=P2.getHeigth();
+
+            if(this.hits(xP1,yP1,widthP1,heightP1) || this.hits(xP2,yP2,widthP2,heightP2)){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        Ball.prototype.hits=function(xP,yP,widthP,heightP){
+            var ballX=this.getXPos(),ballY=this.getYPos();
+            if( ((xP-widthP/2)<ballX) && (ballX<(xP+widthP/2)) && (  ((yP-heightP/2-balLRad)< ballY) && (ballY< (yP+heightP/2+balLRad) )  )  ){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        Player.prototype.draw=function(){
+            var widthP = this.getWidth();
+            var heightP= this.getHeigth();
+            var xP = this.getXPos()-widthP/2; 
+            var yP = this.getYPos()-heightP/2;
+            var color = '#616161';
+            ctx.rect(xP,yP,widthP,heightP);
+            ctx.fillStyle=color;
+            ctx.fill();
+            ctx.closePath();
+        }
+        Ball.prototype.draw=function(){
+            var xP = this.getXPos();
+            var yP = this.getYPos();
+            var kleur = this.color;
+            ctx.beginPath();
+            /*if(this.collides()){
+                kleur=getRandomColor();
+                this.color=kleur;
+            }*/
+            ctx.arc(xP,yP,balLRad,0,2*Math.PI);
+            ctx.fillStyle = kleur;
+            ctx.fill();
+            ctx.closePath();
+        }
+        Ball.prototype.getXPos=function(){
+            return this.xPos
+        }
+        Ball.prototype.getYPos=function(){
+            return this.yPos;
+        }
+        Ball.prototype.setYPos=function(yPos){
+            this.yPos=yPos;
+        }
+        Ball.prototype.setXPos=function(xPos){
+            this.xPos=xPos;
+        }
+        Ball.prototype.getXSpd=function(){
+            return this.xSpd;
+        }
+        Ball.prototype.getYSpd=function(){
+            return this.ySpd;
+        }
+        Ball.prototype.setXSpd=function(xSpd){
+            this.xSpd=limit(xSpd);
+        }
+        function limit(getal){
+            if(Math.abs(getal)>(3*Math.abs(ball.getYSpd()))){
+               return getal/2;
+               }
+            else{
+               return getal;
+               }
+        }
+        Ball.prototype.setYSpd=function(ySpd){
+            this.ySpd=ySpd;
+        }
+        Player.prototype.getXPos=function(){
+            return this.xPos
+        }
+        Player.prototype.getYPos=function(){
+            return this.yPos;
+        }
+        Player.prototype.setXPos=function(xPos){
+            this.xPos=xPos;
+        }
+        Player.prototype.getXSpd=function(){
+            return this.xSpd;
+        }
+        Player.prototype.setXSpd=function(xSpd){
+            this.xSpd=xSpd;
+        }
+        Player.prototype.getWidth=function(){
+            return this.pWidth;
+        }
+        Player.prototype.getHeigth=function(){
+            return this.pHeight;
+        }
+        function getRandomColor(){
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++ ) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+        return color;
+        }
+    }
+</script>
+</html>

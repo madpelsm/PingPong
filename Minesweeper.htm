@@ -1,0 +1,529 @@
+<html>
+
+<head>
+    <script src="jquery.js"></script>
+    <link rel="stylesheet" href="style.css" type="text/css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+    <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+    <script>
+        function revealNearest(id) {
+            var ID = "" + id;
+            var regex = /r(\d+)c(\d+)/g;
+            var match = regex.exec(ID);
+            var rowN = parseInt(match[1]); //coordinaat 1 
+            var colN = parseInt(match[2]); //coordinaat 2
+            var cols = parseInt($("#rows").val());
+            var rows = parseInt($("#cols").val());
+            var b = parseInt(document.getElementById(ID).getAttribute("boolean"));
+            if (b == 0) {
+
+                for (var i = -1; i < 2; i++) {
+                    for (var j = -1; j < 2; j++) {
+                        if (i != 0 || j != 0) {
+                            var n = "r" + (rowN + i) + "c" + (colN + j);
+                            //console.log(n+" en er zijn kolommen en rijen"+cols + ","+rows);
+                            if ((rowN + i) >= 0 && (rowN + i) < rows && (colN + j) >= 0 && (colN + j) < cols) {
+                                var T = document.getElementById(n);
+                                if (T.getAttribute("flagged") == "0") {
+                                    T.className = "tile tile-clicked"
+                                    if (T.innerHTML == 0) {
+                                        document.getElementById(ID).setAttribute("boolean", "1");
+                                        revealNearest(T.id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {}
+
+        }
+
+        function countBombs(a, b, playField) {
+            var bombsHere = 0;
+            var cols = playField.length;
+            var rows = playField[0].length;
+            if (playField[a][b] != 9) {
+                for (var k = -1; k < 2; k++) {
+                    for (var l = -1; l < 2; l++) {
+                        if (k != 0 || l != 0) {
+                            var q = a + k;
+                            var p = b + l;
+
+                            if (0 <= q && q < cols && 0 <= p && p < rows) { //aantal rijen is kolomlengte is 2e coordinaat.
+                                if (playField[q][p] == 9) {
+                                    bombsHere++;
+                                }
+                            }
+                        }
+
+                    }
+                }
+                return bombsHere;
+            } else {
+                return 9;
+            }
+        }
+
+        function removeAllpreviousPlayfield() {
+            var f = document.getElementsByClassName("playingField");
+            for (var i = 0; i < f.length; i++) {
+                f.remove();
+            }
+
+        }
+
+        function createNewGame() {
+
+
+            var cols = parseInt($("#cols").val());
+            var rows = parseInt($("#rows").val());
+            var bombsAmount = parseInt($("#bombsAmount").val());
+
+            if ((cols * rows) > bombsAmount) {
+                var playField = new Array(cols);
+                for (var i = 0; i < cols; i++) {
+                    playField[i] = new Array(rows);
+                }
+
+
+                var bombsPresent = 0;
+                while (bombsPresent < bombsAmount) {
+                    var xCo = Math.floor(Math.random() * cols);
+                    var yCo = Math.floor(Math.random() * rows);
+                    if (playField[xCo][yCo] != 9 && (bombsPresent < bombsAmount)) {
+                        playField[xCo][yCo] = 9;
+                        bombsPresent += 1;
+
+                    }
+                }
+
+                for (var x = 0; x < cols; x++) {
+                    for (var y = 0; y < rows; y++) {
+                        playField[x][y] = countBombs(x, y, playField);
+
+                    }
+                }
+                //removeAllpreviousPlayfield();
+                $(".playingField").remove();
+                for (var i = 0; i < cols; i++) {
+
+                    var Pf = document.createElement("div");
+                    var Naam = "playingField" + parseInt(i);
+                    Pf.id = Naam;
+
+                    Pf.className = "playingField";
+                    var NaamId = "#" + Naam;
+
+                    $(".cont").append(Pf);
+                    for (var j = 0; j < rows; j++) {
+                        var div = document.createElement("div");
+                        div.className = "tile";
+                        var divId = "r" + i + "c" + j;
+                        div.id = "" + divId;
+                        div.setAttribute("boolean", "0");
+                        div.setAttribute("flagged", "0");
+                        var T = "#" + divId;
+                        $(T).remove();
+                        $(NaamId).append(div);
+                        $(T).append(playField[i][j]);
+                        if (playField[i][j] == 9) {
+                            div.id = "bom";
+                            div.setAttribute("name", "bom");
+                            div.innerHTML = "<i class=\"fa fa-bomb\" aria-hidden=\"true\"></i>";
+                        } else {
+
+                        }
+                        //alert(i+","+j+":"+playField[i][j]);
+
+                    }
+
+                }
+                var contentAwareWidth = parseInt(rows) * 4.4;
+                var widthToText = contentAwareWidth + "em";
+                $(".playingField").css("width", widthToText);
+
+            } else {
+                openPopUp(getImpossibility, "#F44336");
+            }
+        }
+
+        function getImpossibility() {
+            var imp = ["You want something impossible", "do your math please", "what you asked is not possible", "nice try, but no", "enter something valable", "rules of nature apply to us all", "checking in on shrudingers cat?"];
+            return imp[Math.floor(Math.random() * imp.length)];
+        }
+
+        function revealAll() {
+            var cols = parseInt($("#rows").val());
+            var rows = parseInt($("#cols").val());
+            var tiles = document.getElementsByClassName("tile");
+            for (var i = 0; i < tiles.length; i++) {
+                if (tiles[i].id != "bom") {
+                    tiles[i].className = "tile tile-clicked";
+                } else {
+
+                    tiles[i].style.backgroundColor = "#DD2C00";
+                    tiles[i].style.color = "#FBE9E7";
+                    tiles[i].className = "tile tile-clicked";
+                }
+            }
+
+        }
+
+        function getNewGameOver() {
+            var quotes = ["bending the spoon?", "approximating lightspeed?", "gathering quarks?", "you fail at life", "you're a failure", "virgin", "you'll never escape the friendzone", "go mow the lawn", "should've payed your taxes", "go do some dishes instead", "better format your harddrive", "I've got your bank account info", "just quit, like you usually do", "your life is a loading screen", "dig some holes", "this ain't working", "nope", "suicide?"];
+            return quotes[Math.floor(Math.random() * quotes.length)];
+        }
+
+        function isGameWon() {
+            var bombsByName = document.getElementsByName("bom");
+            var bombsByClass = document.getElementsByClassName("tile");
+            var b = true;
+            var nameL = bombsByName.length;
+            var AllClicked = document.getElementsByClassName("tile tile-clicked");
+            var clickDL = AllClicked.length;
+            var filteredArr = $(bombsByClass).not(AllClicked).get();
+            var filteredL = filteredArr.length;
+
+            if (filteredL == nameL) {
+                for (var i = 0; i < filteredL; i++) {
+
+                    b &= (filteredArr[i] == bombsByName[i]);
+
+                }
+                return b;
+            } else return !b;
+
+
+        }
+
+        function succesPop() {
+            alert("succes");
+        }
+
+        function getNewWinQuote() {
+            var winQuotes = ["nice", "good job", "You got 'em all!", "succes!"]
+            return winQuotes[Math.floor(Math.random() * winQuotes.length)];
+        }
+
+
+
+        var T1;
+        var T2;
+
+        function mouseDown(e) {
+            T1 = new Date().getTime();
+        }
+
+        function mouseUp(e) {
+
+            var clickedClassName = e.target.className;
+            T2 = new Date().getTime();
+            var Td = T2 - T1;
+            if (e.target.className == "tile") {
+               if ((Td) <= 180) {
+                    e.target.className = "tile tile-clicked";
+                    if (e.target.id == "bom") {
+                        e.target.style.backgroundColor = "#DD2C00";
+                        e.target.style.color = "#FBE9E7";
+                        revealAll();
+                        openPopUp(getNewGameOver(), "#F44336");
+                        //createNewGame();
+                    }
+
+                    if (e.target.innerHTML == 0) {
+                        revealNearest(e.target.id);
+
+                    }
+                    if (isGameWon() == 1) {
+                        revealAll();
+                        openPopUp(getNewWinQuote(), "#4CAF50");
+                    }
+                } else if ((Td) > 180) {
+                    e.target.setAttribute("flagged", "1");
+                    e.target.className = "tile tile-flagged";
+                }
+
+
+            } else if (clickedClassName.localeCompare("tile tile-flagged") == 0 && (Td) > 120) {
+                e.target.className = "tile";
+                e.target.setAttribute("flagged", "0");
+            }
+
+        }
+        document.addEventListener("mouseup", mouseUp);
+        document.addEventListener("mousedown", mouseDown);
+
+        function closePopUp() {
+            $("#fadeBG").css("opacity", "0");
+            $("#fadeBG").css("animation", "close 350ms cubic-bezier(0.4,0.0,0.2,1);");
+            setTimeout($("#fadeBG").css("visibility", "hidden"), 1000);
+        }
+
+        function openPopUp(input, color) {
+            $("#message").html(input);
+            $("#message").css("color", color);
+            $("#fadeBG").css("visibility", "visible");
+        }
+        $(function() {
+            $("button").on("tap", createNewGame);
+            $("button").click(createNewGame);
+            $("#close").click(closePopUp);
+            $("#fadeBG").click(function() {
+                $(this).css("visibility", "hidden")
+            });
+
+
+
+        });
+    </script>
+</head>
+
+<body>
+    <style>
+         @import 'https://fonts.googleapis.com/css?family=Source+Sans+Pro';
+body{
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 120%;
+}
+.wrapper {
+    width:95%;
+    margin-top:0.5em;
+    margin-left:auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+body {
+    width: 100%;
+    margin:0;
+    text-align: center;
+    margin-top: 0;
+}
+
+button {
+    font-size: 150%;
+    border:none;
+    height: 2em;
+    width:6em;
+    border-radius: 0.5em;
+    background-color: #00ACC1;
+    color:white;
+    opacity: 0;
+    animation:TileLoad 350ms cubic-bezier(0.4,0.0,0.2,1);
+    animation-fill-mode: forwards;
+    transition: background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+}
+button:hover{
+    cursor:hand;
+    background-color: #0097A7;
+    color:white;
+    transition: background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+}
+
+
+textarea {
+    font-family: 'Source Sans Pro', sans-serif;
+    text-align: center;
+    height: 2em;
+    width: 2em;
+    padding-top:0.2em;
+    vertical-align: middle;
+    resize: none;
+    overflow:hidden;
+    border:none;
+    
+}
+.inputFields{
+    text-align: center;
+    vertical-align: middle;
+    opacity: 0;
+    animation:TileLoad 350ms cubic-bezier(0.4,0.0,0.2,1);
+    animation-fill-mode: forwards;
+}
+
+h2 {
+    display: inline-block;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.tile {
+    padding-top:1em;
+    padding-bottom: 1em;
+    text-indent:100%;
+    white-space:nowrap;
+    overflow:hidden;
+    float:left;
+    text-align: center;
+    display: inline-block;
+    height: 1.8em;
+    width: 4em;
+    margin:0.2em 0.2em 0.2em 0.2em;
+    background-color:#00ACC1;
+    color:#00ACC1;
+    cursor:hand;
+    opacity:0;
+    animation:TileLoad 350ms cubic-bezier(0.4,0.0,0.2,1);
+    animation-fill-mode: forwards;
+    
+}
+@keyframes TileLoad{
+    from{opacity:0;}
+    to{opacity:1;}
+}
+
+
+.playingField {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    
+}
+
+
+
+.tile-clicked{
+    transition:background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+    background-color:#4DD0E1;
+    color:white;
+    text-indent:0%;
+}
+.tile-flagged{
+    transition:background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+    background-color:#E0F7FA;
+    color:#006064;
+    text-indent: 100%;
+    background-image: url('http://simpleicon.com/wp-content/uploads/flag.png');
+    background-size: contain;
+    background-size: 1em;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.spacer{
+    display:block;
+    width:50%;
+    height: 10px;
+}
+.cont{
+    margin-top:1em;
+    align-content:center;
+}
+.tile-clicked-zero{
+    background-color:#4DD0E1;
+    color:white;
+    text-indent:0%;
+}
+.succesW{
+    text-align: right;
+    background-color: #F5F5F5;
+    padding:1em 1em 2em 1em;
+    width:20%;
+    min-width: 15em;
+    border-radius: 8px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top:2em;
+    
+}
+@keyframes close{
+    from{opacity: 1;}to{opacity: 0;}
+}
+.succesW #close{
+    padding:0 0.35em 0 0.35em;
+    border-radius: 50%;
+	width: 200px;
+	height: 200px; 
+    background-color: #EEEEEE;
+    color:#424242;
+    transition:background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+    transition:color 350ms cubics-bezier(0.4,0.0,0.2,1);
+    animation-direction: forwards;
+}
+.succesW #close:hover{
+    background-color: #B71C1C;
+    transition:background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+    transition:color 350ms cubics-bezier(0.4,0.0,0.2,1);
+    color:white;
+    cursor:hand;
+}
+.succesW p{
+    font-weight: 300;
+    font-size: 200%;
+    text-align: center;
+    width: 100%;
+    display: inline-block;
+}
+#fadeBG{
+    visibility: hidden;
+    opacity:0;
+    animation:TileLoad 350ms cubic-bezier(0.4,0.0,0.2,1);
+    animation-fill-mode: forwards;
+    transition:background-color 350ms cubic-bezier(0.4,0.0,0.2,1);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top:0;
+    z-index: 1;
+    background-color: rgba(50,50,50,0.4);
+}
+.fa-bomb{
+    margin-top: 0.3em;
+    color:white;
+}
+#howTo{
+    width: 20%;
+    z-index: 1;
+    position: fixed;
+    margin-bottom: 0em;
+    
+}
+#howTo h2{
+    margin-bottom: 0.2em;
+}
+#howTo ul{
+    text-align: left;
+    text-decoration: none;
+    list-style-type: none;
+    padding-left:0;
+    margin-top: 0;
+}
+#howTo li{
+    margin-bottom: 0.5em;
+}
+    </style>
+    <div id="fadeBG">
+        <div class="succesW"><span id="close">X</span>
+            <p id="message">Succes!</p>
+        </div>
+    </div>
+    
+    <div class="wrapper">
+        <div id="howTo">
+            <h2>How to play</h2>
+            <ul>
+                <li>Press to reveal a Tile</li>
+                <li>Long press to toggle a flag on a tile.</li>
+            </ul>
+            </div>
+            
+        <div class="inputFields">
+            <h2>columns</h2>
+            <textarea id="rows">10</textarea>
+            <h2>rows</h2>
+            <textarea id="cols">10</textarea>
+            <h2>bombs</h2>
+            <textarea id="bombsAmount">12</textarea>
+
+        </div>
+        <button id="generate">Generate</button>
+        <div class="cont">
+            <div id="playingField">
+
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
